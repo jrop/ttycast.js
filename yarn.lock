@@ -1392,6 +1392,10 @@ tar@~2.2.1:
     fstream "^1.0.2"
     inherits "2"
 
+thunk-to-promise:
+  version "1.1.0"
+  resolved "https://registry.npmjs.org/thunk-to-promise/-/thunk-to-promise-1.1.0.tgz#1ef47323bb87e7352362f880c1c3081a61726410"
+
 to-fast-properties@^1.0.1:
   version "1.0.2"
   resolved "https://registry.npmjs.org/to-fast-properties/-/to-fast-properties-1.0.2.tgz#f3f5c0c3ba7299a7ef99427e44633257ade43320"

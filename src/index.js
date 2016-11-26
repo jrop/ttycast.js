@@ -1,5 +1,7 @@
+import {EventEmitter} from 'events'
 import fs from 'fs'
 import pty from 'pty.js'
+import t2p from 'thunk-to-promise'
 import yargs from 'yargs'
 
 function record(args) {
@@ -32,28 +34,38 @@ function record(args) {
 	})
 }
 
-function play(args) {
-	const fileName = args._[1]
-	fs.readFile(fileName, 'utf-8', (err, data) => {
-		if (err) throw err
-		const frames = data.split('\n').map(l => {
-			const [ time, data ] = l.split(' ')
-			return { time, data }
-		})
-
-		let last = 0
-		function next() {
-			if (frames.length == 0)
-				process.exit()
-
-			const [ frame ] = frames.splice(0, 1)
-			process.stdout.write(new Buffer(frame.data, 'base64').toString('utf-8'))
-			// console.log(frame, frame.time - last) //new Buffer(frame.data, 'base64').toString('utf-8'))
-			setTimeout(next, frame.time - last)
-			last = frame.time
+async function play(args) {
+	const ee = new EventEmitter()
+	ee.paused = false
+	process.stdin.setRawMode(true)
+	process.stdin.setEncoding('utf-8')
+	process.stdin.on('data', key => {
+		if (key == '\u0003') {
+			process.exit()
+		} else if (key == ' ') {
+			ee.paused = !ee.paused
+			ee.emit(ee.paused ? 'pause' : 'play')
 		}
-		next()
 	})
+
+	const fileName = args._[1]
+	const data = await t2p(done => fs.readFile(fileName, 'utf-8', done))
+	const frames = data.split('\n').map(l => {
+		const [ time, data ] = l.split(' ')
+		return { time, data }
+	})
+
+	let last = 0
+	while (frames.length > 0) {
+		if (ee.paused)
+			await new Promise(y => ee.on('play', y))
+		const [ frame ] = frames.splice(0, 1)
+		process.stdout.write(new Buffer(frame.data, 'base64').toString('utf-8'))
+		// console.log(frame.time - last) //new Buffer(frame.data, 'base64').toString('utf-8'))
+		await new Promise(y => setTimeout(y, frame.time - last))
+		last = frame.time
+	}
+	process.exit()
 }
 
 yargs.usage('$0 [command]')
