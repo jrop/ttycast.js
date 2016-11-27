@@ -3,6 +3,7 @@ import fs from 'fs'
 import pty from 'pty.js'
 import t2p from 'thunk-to-promise'
 import yargs from 'yargs'
+require('loud-rejection')()
 
 function record(args) {
 	const shell = process.env.SHELL || 'sh'
@@ -22,15 +23,11 @@ function record(args) {
 	process.stdin.pipe(term)
 	term.pipe(process.stdout)
 	term.on('data', d => frames.push({ time: new Date().getTime() - now, data: new Buffer(d) }))
-	term.on('close', () => {
+	term.on('close', async () => {
 		const outFile = args._[1]
 		console.error('ttycast.js: complete, writing to', args._[1])
-		const data = frames.map(f => `${f.time} ${f.data.toString('base64')}`)
-			.join('\n')
-		fs.writeFile(outFile, data, 'utf-8', err => {
-			if (err) throw err
-			process.exit()
-		})
+		await t2p(done => fs.writeFile(outFile, JSON.stringify(frames), 'utf-8', done))
+		process.exit()
 	})
 }
 
@@ -49,19 +46,13 @@ async function play(args) {
 	})
 
 	const fileName = args._[1]
-	const data = await t2p(done => fs.readFile(fileName, 'utf-8', done))
-	const frames = data.split('\n').map(l => {
-		const [ time, data ] = l.split(' ')
-		return { time, data }
-	})
-
+	const frames = JSON.parse(await t2p(done => fs.readFile(fileName, 'utf-8', done)))
 	let last = 0
 	while (frames.length > 0) {
 		if (ee.paused)
 			await new Promise(y => ee.on('play', y))
 		const [ frame ] = frames.splice(0, 1)
 		process.stdout.write(new Buffer(frame.data, 'base64').toString('utf-8'))
-		// console.log(frame.time - last) //new Buffer(frame.data, 'base64').toString('utf-8'))
 		await new Promise(y => setTimeout(y, frame.time - last))
 		last = frame.time
 	}
