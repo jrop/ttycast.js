@@ -15,7 +15,7 @@
     "loud-rejection": "^1.6.0",
     "pty.js": "^0.3.1",
     "thunk-to-promise": "^1.1.0",
-    "yargs": "^6.4.0"
+    "yargs": "^8.0.2"
   },
   "devDependencies": {
     "babel-cli": "^6.18.0",
