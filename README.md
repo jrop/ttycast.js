@@ -1,5 +1,7 @@
 # ttycast.js
 
+[![Greenkeeper badge](https://badges.greenkeeper.io/jrop/ttycast.js.svg)](https://greenkeeper.io/)
+
 This project is still under development.  For the moment, you should use `asciinema` or similar.
 
 This was heavily inspired by [this project](https://github.com/cortezcristian/terminal-recorder).
